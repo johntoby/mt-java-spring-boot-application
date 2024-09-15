@@ -1,0 +1,37 @@
+name: Deploy Java springboot application to AWS Elastic Beanstalk
+
+on:
+  push:
+    branches:
+      - main  
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Build with Maven
+      run: mvn clean install -DskipTests
+      
+    - name: Generate deployment package
+      run: zip -r deploy.zip target/*.jar .ebextensions/* -x "*.git*"
+      
+    - name: Deploy to AWS Elastic Beanstalk
+      uses: einaregilsson/beanstalk-deploy@v21
+      with:
+        aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        application_name: mt-java-application
+        environment_name: Mt-java-application-env
+        version_label: ${{ github.sha }}
+        region: us-east-1
+        deployment_package: target/springboot-example.jar
